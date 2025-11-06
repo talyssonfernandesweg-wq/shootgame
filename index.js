@@ -4,8 +4,7 @@ import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = path.resolve(path.dirname(new URL(import.meta.url).pathname));
 
 const app = express();
 app.use(cors());
