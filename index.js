@@ -3,6 +3,7 @@ import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
+import path from "path";
 
 const __dirname = path.resolve(path.dirname(new URL(import.meta.url).pathname));
 
