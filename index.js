@@ -1,30 +1,35 @@
-// server/index.js
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import path from "path";
 
-const __dirname = path.resolve(path.dirname(new URL(import.meta.url).pathname));
+const __filename = new URL(import.meta.url).pathname;
+const __dirname = path.dirname(__filename).replace(/^\/([A-Za-z]):\//, "$1:/");
 
+console.log("dirname" + __dirname)
 const app = express();
 app.use(cors());
+
+// Serve os arquivos estáticos da pasta "cliente"
 app.use(express.static(path.join(__dirname, "client")));
 
+// Rota para servir o index.html
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "client", "index.html"));
 });
 
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: {
-      origin: ["http://localhost:3000", "https://shootmulti.loca.lt"], // Permite o localhost e a URL do seu túnel
-      methods: ["GET", "POST"],
-      allowedHeaders: ["Content-Type"],
-      credentials: true // Permite cookies e credenciais
-    },
-  });
+  cors: {
+    origin: ["http://localhost:3000", "https://shootmulti.loca.lt"], // Permite o localhost e a URL do seu túnel
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"],
+    credentials: true // Permite cookies e credenciais
+  }
+});
 
+// --- SOCKET.IO ---
 let rooms = {};
 
 io.on("connection", (socket) => {
@@ -33,11 +38,10 @@ io.on("connection", (socket) => {
   socket.on("create_room", () => {
     const roomId = Math.random().toString(36).substring(2, 7);
     rooms[roomId] = { players: {}, hostId: socket.id, started: false };
-    rooms[roomId].players[socket.id] = { x: 100, y: 100, alive: true };
-    console.log('criando sala...');
+    rooms[roomId].players[socket.id] = { x: 100, y: 100, alive: true, hp: 100 };
     socket.join(roomId);
+    socket.roomId = roomId;
     socket.emit("room_created", roomId);
-    console.log(`Sala criada: ${roomId}`);
   });
 
   socket.on("join_room", (roomId) => {
@@ -49,8 +53,9 @@ io.on("connection", (socket) => {
       socket.emit("error_message", "Sala cheia");
       return;
     }
-    rooms[roomId].players[socket.id] = { x: 100, y: 100, alive: true };
+    rooms[roomId].players[socket.id] = { x: 100, y: 100, alive: true, hp: 100 };
     socket.join(roomId);
+    socket.roomId = roomId;
     io.to(roomId).emit("update_players", rooms[roomId].players);
   });
 
@@ -58,11 +63,10 @@ io.on("connection", (socket) => {
     const room = rooms[roomId];
     if (room && room.hostId === socket.id) {
       room.started = true;
-      io.to(roomId).emit("update_players", room.players); // <--- envia jogadores antes
-      io.to(roomId).emit("start_game"); // <--- inicia o jogo
-      console.log("Partida iniciada:", roomId);
+      io.to(roomId).emit("update_players", room.players);
+      io.to(roomId).emit("start_game");
     }
-  });  
+  });
 
   socket.on("player_move", ({ roomId, x, y }) => {
     if (rooms[roomId]?.players[socket.id]) {
@@ -88,7 +92,36 @@ io.on("connection", (socket) => {
       }
     }
   });
+
+  socket.on("shoot_bullet", (bullet) => {
+    const roomId = socket.roomId;
+    console.log("room: " + roomId)
+    if (!roomId) return;
+
+    const room = rooms[roomId];
+
+    for (const [id, p] of Object.entries(room.players)) {
+
+      if (id === socket.id) continue; 
+      if (
+        bullet.x < p.x + 30 && bullet.x > p.x &&
+        bullet.y < p.y + 30 && bullet.y > p.y
+      ) {
+        
+        p.hp -= 10;
+        if (p.hp <= 0) p.alive = false;
+        console.log("bala some ao atingir alguém")
+        io.to(roomId).emit("update_players", room.players);
+        return; 
+      }
+    }
+
+    
+    io.to(roomId).emit("bullet_fired", bullet);
+  });
+
 });
 
+// --- SERVER ---
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log("Servidor rodando na porta", PORT));
