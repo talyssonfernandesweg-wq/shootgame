@@ -1,4 +1,4 @@
-const socket = io("https://tricky-mayfly-6.loca.lt");
+const socket = io();
 
 let roomId = null;
 
