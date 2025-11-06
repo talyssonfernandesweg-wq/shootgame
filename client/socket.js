@@ -29,6 +29,10 @@ socket.on("bullet_fired", (bullet) => {
   bullets.push(bullet);
 });
 
+socket.on("update_bullets", (serverBullets) => {
+  bullets = serverBullets;
+});
+
 function criarSala() {
     console.log('solicitando para criar sala...');
   socket.emit("create_room");
@@ -46,4 +50,8 @@ function iniciar() {
 
 function enviarMovimento(x, y) {
   if (roomId) socket.emit("player_move", { roomId, x, y });
+}
+
+function enviarTiro(bullet) {
+  socket.emit("shoot_bullet", bullet);
 }

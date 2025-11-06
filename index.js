@@ -11,10 +11,8 @@ console.log("dirname" + __dirname)
 const app = express();
 app.use(cors());
 
-// Serve os arquivos estáticos da pasta "cliente"
 app.use(express.static(path.join(__dirname, "client")));
 
-// Rota para servir o index.html
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "client", "index.html"));
 });
@@ -22,10 +20,10 @@ app.get("/", (req, res) => {
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3000", "https://shootmulti.loca.lt"], // Permite o localhost e a URL do seu túnel
+    origin: ["http://localhost:3000", "https://shootmulti.loca.lt"],
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"],
-    credentials: true // Permite cookies e credenciais
+    credentials: true 
   }
 });
 
@@ -98,26 +96,43 @@ io.on("connection", (socket) => {
     if (!roomId) return;
 
     const room = rooms[roomId];
+    if (!room.bullets) room.bullets = [];
 
-    for (const [id, p] of Object.entries(room.players)) {
-
-      if (id === socket.id) continue; 
-      if (
-        bullet.x < p.x + 30 && bullet.x > p.x &&
-        bullet.y < p.y + 30 && bullet.y > p.y
-      ) {
-        
-        p.hp -= 10;
-        if (p.hp <= 0) p.alive = false;
-        console.log("bala some ao atingir alguém")
-        io.to(roomId).emit("update_players", room.players);
-        return; 
-      }
-    }
-
-    
-    io.to(roomId).emit("bullet_fired", bullet);
+    bullet.shooter = socket.id;
+    bullet.dir = bullet.dir || "right";
+    room.bullets.push(bullet);
   });
+
+  setInterval(() => {
+    for (const [roomId, room] of Object.entries(rooms)) {
+      if (!room.bullets) continue;
+
+      for (let i = room.bullets.length - 1; i >= 0; i--) {
+        const b = room.bullets[i];
+        b.x += b.dir === "right" ? 6 : -6;
+
+        // Saiu do mapa
+        if (b.x < 0 || b.x > 1600) {
+          room.bullets.splice(i, 1);
+          continue;
+        }
+
+        // Colisão com jogadores
+        for (const [id, p] of Object.entries(room.players)) {
+          if (!p.alive || id === b.shooter) continue;
+          if (b.x > p.x && b.x < p.x + 30 && b.y > p.y && b.y < p.y + 30) {
+            p.hp -= 10;
+            if (p.hp <= 0) p.alive = false;
+            room.bullets.splice(i, 1);
+            io.to(roomId).emit("update_players", room.players);
+            break;
+          }
+        }
+      }
+
+      io.to(roomId).emit("update_bullets", room.bullets);
+    }
+  }, 1000 / 60);
 
 });
 

@@ -103,31 +103,6 @@ function update() {
     cameraX = Math.max(0, Math.min(myX - canvas.width / 2, MAP_WIDTH - canvas.width));
     cameraY = Math.max(0, Math.min(myY - canvas.height / 2, MAP_HEIGHT - canvas.height));
 
-    for (let i = bullets.length - 1; i >= 0; i--) {
-        const b = bullets[i];
-        b.x += b.dir === "right" ? BULLET_SPEED : -BULLET_SPEED;
-
-        // Remove bala se saiu da tela
-        if (b.x < 0 || b.x > MAP_WIDTH || b.y < 0 || b.y > MAP_HEIGHT) {
-            bullets.splice(i, 1);
-            continue;
-        }
-
-        // Verifica colisões com jogadores
-        for (const [id, p] of Object.entries(players)) {
-            if (!p.alive) continue;
-            if (id === b.shooter) continue; // não atinge quem atirou
-            if (b.x > p.x && b.x < p.x + 30 && b.y > p.y && b.y < p.y + 30) {
-                // Se acertou, diminui HP e remove a bala
-                p.hp -= 10;
-                if (p.hp <= 0) p.alive = false;
-                bullets.splice(i, 1);
-                break;
-            }
-        }
-    }
-
-
     enviarMovimento(myX, myY);
 }
 
@@ -179,13 +154,12 @@ function draw() {
 }
 
 function shootBullet() {
-    const bullet = {
-        x: myX + 16,
-        y: myY + 16,
-        dir: facing,
-        shooter: socket.id
-    };
-    socket.emit("shoot_bullet", bullet);
+  const bullet = {
+    x: myX + 16,
+    y: myY + 16,
+    dir: facing
+  };
+  enviarTiro(bullet);
 }
 
 function updateStatus() {
