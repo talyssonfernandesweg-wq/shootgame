@@ -73,6 +73,12 @@ io.on("connection", (socket) => {
     const room = rooms[roomId];
     if (room && room.hostId === socket.id) {
       room.started = true;
+      rooms[roomId].players[socket.id] = { 
+        x: 100, 
+        y: 100, 
+        alive: true, 
+        hp: 100
+      };
       io.to(roomId).emit("update_players", room.players);
       io.to(roomId).emit("start_game");
     }
@@ -121,7 +127,7 @@ io.on("connection", (socket) => {
 
       for (let i = room.bullets.length - 1; i >= 0; i--) {
         const b = room.bullets[i];
-        b.x += b.dir === "right" ? 6 : -6;
+        b.x += b.dir === "right" ? 2 : -2;
 
         // Saiu do mapa
         if (b.x < 0 || b.x > 1600) {
@@ -133,7 +139,7 @@ io.on("connection", (socket) => {
         for (const [id, p] of Object.entries(room.players)) {
           if (!p.alive || id === b.shooter) continue;
           if (b.x > p.x && b.x < p.x + 30 && b.y > p.y && b.y < p.y + 30) {
-            p.hp -= 10;
+            p.hp -= 1;
             if (p.hp <= 0) p.alive = false;
             room.bullets.splice(i, 1);
             io.to(roomId).emit("update_players", room.players);

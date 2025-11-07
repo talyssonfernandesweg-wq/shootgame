@@ -1,8 +1,7 @@
 const canvas = document.createElement("canvas");
 const ctx = canvas.getContext("2d");
-canvas.width = 800;
-canvas.height = 400;
-document.body.appendChild(canvas);
+canvas.width = 1200;
+canvas.height = 720;
 
 let players = {};
 let myX = 100, myY = 100;
@@ -36,18 +35,6 @@ let platforms = [
     { x: 1000, y: 720, width: 200, height: 20 }, 
     { x: 1300, y: 720, width: 200, height: 20 }  
 ];
-
-const statusDiv = document.createElement("div");
-statusDiv.style.position = "absolute";
-statusDiv.style.top = "5px";
-statusDiv.style.left = "5px";
-statusDiv.style.color = "white";
-statusDiv.style.font = "16px Arial";
-statusDiv.style.background = "rgba(0,0,0,0.5)";
-statusDiv.style.padding = "5px";
-statusDiv.style.whiteSpace = "pre";
-statusDiv.style.zIndex = "10";
-document.body.appendChild(statusDiv);
 
 let groundTexture = null;
 const groundImage = new Image();
@@ -171,8 +158,19 @@ function draw() {
     }
 
     // Desenha o chão
-    ctx.fillStyle = groundTexture || "#444";
-    ctx.fillRect(0 - cameraX, GROUND_Y - cameraY, MAP_WIDTH, 50);
+    if (groundTexture) {
+        ctx.save();  
+    
+        ctx.translate(-cameraX % groundImage.width, 0);
+        ctx.fillStyle = groundTexture;
+    
+        ctx.fillRect(0, GROUND_Y - cameraY, MAP_WIDTH + groundImage.width, 50);
+    
+        ctx.restore(); 
+    } else {
+        ctx.fillStyle = "#444";
+        ctx.fillRect(0 - cameraX, GROUND_Y - cameraY, MAP_WIDTH, 50);
+    }
 
     ctx.fillStyle = "brown";
     for (const platform of platforms) {

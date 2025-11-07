@@ -23,6 +23,8 @@ socket.on("start_game", () => {
 
 socket.on("error_message", (msg) => {
   alert(msg);
+  document.body.removeChild(canvas);
+  document.getElementById('gameUi').removeAttribute('hidden')
 });
 
 socket.on("bullet_fired", (bullet) => {
@@ -34,11 +36,16 @@ socket.on("update_bullets", (serverBullets) => {
 });
 
 function criarSala() {
+  document.getElementById('gameUi').setAttribute('hidden', true)
+  document.body.appendChild(canvas);
+  document.getElementById('btnIniciar').removeAttribute('hidden')
   const name = document.getElementById("playerName").value || "Jogador";
   socket.emit("create_room", name);
 }
 
 function entrarSala() {
+  document.getElementById('gameUi').setAttribute('hidden', true)
+  document.body.appendChild(canvas);
   const id = document.getElementById("roomId").value;
   const name = document.getElementById("playerName").value || "Jogador";
   roomId = id;

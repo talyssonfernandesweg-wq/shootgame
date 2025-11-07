@@ -9,14 +9,140 @@
   </style>
 </head>
 <body>
-  <h1>Jogo Plataforma Multiplayer</h1>
-  <input type="text" id="playerName" placeholder="Seu nome">
-  <button onclick="criarSala()">Criar Sala</button>
-  <input id="roomId" placeholder="ID da sala">
-  <button onclick="entrarSala()">Entrar</button>
-  <button onclick="iniciar()">Iniciar Jogo</button>
-  <p id="status"></p>
-  <p id="playerCount"></p>
+  <div id="gameUi" class="game-ui">
+    <h1 class="title">⚔️ Shoot <span>SCO</span></h1>
+
+    <div class="menu">
+      <input type="text" id="playerName" placeholder="👤 Seu nome">
+      <div class="buttons">
+        <button class="btn neon-green" onclick="criarSala()">Criar Sala</button>
+        <input id="roomId" placeholder="ID da sala">
+        <button class="btn neon-blue" onclick="entrarSala()">Entrar</button>
+      </div>
+    </div>
+
+    <div class="status">
+      <p id="status">Conectando...</p>
+      <p id="playerCount"></p>
+    </div>
+  </div>
+  <button id="btnIniciar" class="btn neon-red" onclick="iniciar()"" hidden="true">Iniciar Jogo</button>
+
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+  <script src="socket.js"></script>
+  <script src="game.js"></script>
+
+  <style>
+    /* ---------- ESTILO GERAL ---------- */
+    body {
+      margin: 0;
+      height: 100vh;
+      background: radial-gradient(circle at 30% 30%, #1a1a1a, #000);
+      color: #eee;
+      font-family: 'Orbitron', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .game-ui {
+      text-align: center;
+      background: rgba(10, 10, 10, 0.8);
+      padding: 30px 50px;
+      border-radius: 15px;
+      box-shadow: 0 0 25px rgba(0, 255, 200, 0.2);
+      backdrop-filter: blur(6px);
+    }
+
+    .title {
+      font-size: 42px;
+      margin-bottom: 20px;
+      color: #0ff;
+      text-shadow: 0 0 15px #0ff, 0 0 30px #00aaff;
+      letter-spacing: 2px;
+    }
+
+    .title span {
+      color: #ff0066;
+      text-shadow: 0 0 15px #ff0066, 0 0 30px #ff3385;
+    }
+
+    /* ---------- INPUTS ---------- */
+    input {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      font-size: 16px;
+      outline: none;
+      margin: 5px;
+      width: 180px;
+      text-align: center;
+    }
+
+    input::placeholder {
+      color: #bbb;
+    }
+
+    /* ---------- BOTÕES ---------- */
+    .buttons {
+      margin-top: 10px;
+    }
+
+    .btn {
+      margin: 8px;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      color: white;
+      cursor: pointer;
+      font-family: 'Orbitron', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.2s ease-in-out;
+    }
+
+    .btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px currentColor;
+    }
+
+    #btnIniciar {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      z-index: 9999; /* fica acima do canvas */
+      padding: 12px 20px;
+      font-size: 18px;
+      box-shadow: 0 0 15px #ff3366;
+    }
+
+    .neon-green {
+      background: linear-gradient(90deg, #00ff9d, #00ffaa);
+      color: #002d1f;
+    }
+
+    .neon-blue {
+      background: linear-gradient(90deg, #00bfff, #0077ff);
+      color: #001a33;
+    }
+
+    .neon-red {
+      background: linear-gradient(90deg, #ff0055, #ff3366);
+      color: #33000f;
+    }
+
+    /* ---------- STATUS ---------- */
+    .status {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #0ff;
+      text-shadow: 0 0 10px #0ff;
+    }
+  </style>
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
   <script src="socket.js"></script>
   <script src="game.js"></script>
