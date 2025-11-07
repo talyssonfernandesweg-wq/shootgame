@@ -31,18 +31,23 @@ const io = new Server(server, {
 let rooms = {};
 
 io.on("connection", (socket) => {
-  console.log("Novo jogador:", socket.id);
 
-  socket.on("create_room", () => {
+  socket.on("create_room", (name) => {
     const roomId = Math.random().toString(36).substring(2, 7);
     rooms[roomId] = { players: {}, hostId: socket.id, started: false };
-    rooms[roomId].players[socket.id] = { x: 100, y: 100, alive: true, hp: 100 };
+    rooms[roomId].players[socket.id] = { 
+      x: 100, 
+      y: 100, 
+      alive: true, 
+      hp: 100,
+      name: name || "Jogador"
+    };
     socket.join(roomId);
     socket.roomId = roomId;
     socket.emit("room_created", roomId);
   });
 
-  socket.on("join_room", (roomId) => {
+  socket.on("join_room", ({ roomId, name }) => {
     if (!rooms[roomId]) {
       socket.emit("error_message", "Sala não encontrada");
       return;
@@ -51,7 +56,14 @@ io.on("connection", (socket) => {
       socket.emit("error_message", "Sala cheia");
       return;
     }
-    rooms[roomId].players[socket.id] = { x: 100, y: 100, alive: true, hp: 100 };
+
+    rooms[roomId].players[socket.id] = { 
+      x: 100, 
+      y: 100, 
+      alive: true, 
+      hp: 100,
+      name: name || "Jogador"
+    };
     socket.join(roomId);
     socket.roomId = roomId;
     io.to(roomId).emit("update_players", rooms[roomId].players);

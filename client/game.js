@@ -25,9 +25,14 @@ let cameraX = 0;
 let cameraY = 0;
 
 let platforms = [
-    { x: 50, y: 680, width: 400, height: 20 },  //personagem pular até 120 de diferença
-    { x: 550, y: 720, width: 150, height: 20 },  
-    { x: 700, y: 720, width: 150, height: 20 }, 
+    //paredes
+    { x: -10, y: 0, width: 10, height: 1600 },
+    { x: 1600, y: 0, width: 10, height: 1600 },
+
+    //plataformas
+    { x: 50, y: 680, width: 400, height: 20 }, 
+    { x: 520, y: 600, width: 500, height: 20 },  
+    { x: 0, y: 450, width: 700, height: 20 }, 
     { x: 1000, y: 720, width: 200, height: 20 }, 
     { x: 1300, y: 720, width: 200, height: 20 }  
 ];
@@ -53,9 +58,14 @@ groundImage.onload = () => {
 
 const playerSprite = new Image();
 playerSprite.src = "https://pixelartmaker-data-78746291193.nyc3.digitaloceanspaces.com/image/19470f3427cb196.png";
+//playerSprite.src = "sprite-animation.gif";
+
 
 const playerGhost = new Image();
 playerGhost.src = "https://i.redd.it/extremely-new-to-pixel-art-and-made-a-ghost-d-v0-kmanq333vfja1.png?s=aaf9123a35ee571227f669c501ffb439ea721d9d";
+
+const backgroundImage = new Image();
+backgroundImage.src = "https://wallpaperaccess.com/full/2684833.jpg";
 
 window.updatePlayers = (data) => {
     players = data;
@@ -77,13 +87,51 @@ function update() {
 
     onGround = false;
     for (const platform of platforms) {
-        if (myX + 30 > platform.x && myX < platform.x + platform.width) {
-            
-            if (myY + 30 <= platform.y && myY + 30 + myVelY >= platform.y) {
-                
-                myY = platform.y - 30; 
-                myVelY = 0;            
-                onGround = true;       
+        // Dimensões do jogador e da plataforma
+        const playerRight = myX + 30;
+        const playerLeft = myX;
+        const playerBottom = myY + 30;
+        const playerTop = myY;
+
+        const platRight = platform.x + platform.width;
+        const platLeft = platform.x;
+        const platBottom = platform.y + platform.height;
+        const platTop = platform.y;
+
+        // Verifica se há interseção (colisão)
+        const horizontalOverlap = playerRight > platLeft && playerLeft < platRight;
+        const verticalOverlap = playerBottom > platTop && playerTop < platBottom;
+
+        if (horizontalOverlap && verticalOverlap) {
+            const overlapX =
+                playerRight > platLeft && playerRight < platRight
+                    ? playerRight - platLeft
+                    : platRight - playerLeft;
+            const overlapY =
+                playerBottom > platTop && playerBottom < platBottom
+                    ? playerBottom - platTop
+                    : platBottom - playerTop;
+
+            // Decide qual eixo tem menos sobreposição (prioriza correção menor)
+            if (overlapX < overlapY) {
+                // Colisão lateral
+                if (myX < platform.x) {
+                    myX -= overlapX; // bateu pela esquerda
+                } else {
+                    myX += overlapX; // bateu pela direita
+                }
+            } else {
+                // Colisão vertical
+                if (myY < platform.y) {
+                    // Encostou no topo da plataforma (pousou)
+                    myY -= overlapY;
+                    myVelY = 0;
+                    onGround = true;
+                } else {
+                    // Bateu por baixo (cabeçada)
+                    myY += overlapY;
+                    if (myVelY < 0) myVelY = 0;
+                }
             }
         }
     }
@@ -108,6 +156,19 @@ function update() {
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (backgroundImage.complete && backgroundImage.naturalWidth > 0) {
+        ctx.drawImage(
+            backgroundImage,
+            -cameraX,    
+            -cameraY,
+            MAP_WIDTH,     
+            MAP_HEIGHT
+        );
+    } else {
+        ctx.fillStyle = "#87CEEB"; 
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 
     // Desenha o chão
     ctx.fillStyle = groundTexture || "#444";
@@ -142,7 +203,7 @@ function draw() {
         // Desenha a vida do jogador no topo da tela
         if (p.alive) {
             ctx.fillStyle = "white";
-            ctx.fillText(`${id === socket.id ? "Você" : id}: ${p.hp} HP`, p.x - cameraX, p.y - cameraY - 10);
+            ctx.fillText(`${p.name}${id === socket.id ? " (Você)" : ""}: ${p.hp} HP`, p.x - cameraX, p.y - cameraY - 10);
         }
     }
 
@@ -166,7 +227,7 @@ function updateStatus() {
     let text = "";
     for (const [id, p] of Object.entries(players)) {
         if (!p.alive) continue; 
-        text += `${id === socket.id ? "Você" : id}: ${p.hp} HP\n`;
+        //text += `${id === socket.id ? "Você" : id}: ${p.hp} HP\n`;
     }
     statusDiv.innerText = text;
 }

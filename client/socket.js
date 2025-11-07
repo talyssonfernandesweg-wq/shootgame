@@ -34,14 +34,15 @@ socket.on("update_bullets", (serverBullets) => {
 });
 
 function criarSala() {
-    console.log('solicitando para criar sala...');
-  socket.emit("create_room");
+  const name = document.getElementById("playerName").value || "Jogador";
+  socket.emit("create_room", name);
 }
 
 function entrarSala() {
   const id = document.getElementById("roomId").value;
+  const name = document.getElementById("playerName").value || "Jogador";
   roomId = id;
-  socket.emit("join_room", id);
+  socket.emit("join_room", { roomId: id, name });
 }
 
 function iniciar() {
