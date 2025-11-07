@@ -32,7 +32,7 @@ let rooms = {};
 
 io.on("connection", (socket) => {
 
-  socket.on("create_room", (name) => {
+  socket.on("create_room", (name, character) => {
     const roomId = Math.random().toString(36).substring(2, 7);
     rooms[roomId] = { players: {}, hostId: socket.id, started: false };
     rooms[roomId].players[socket.id] = { 
@@ -40,14 +40,16 @@ io.on("connection", (socket) => {
       y: 100, 
       alive: true, 
       hp: 100,
-      name: name || "Jogador"
+      name: name || "Jogador",
+      character: character || "Charles"
     };
+    console.log('character' + character)
     socket.join(roomId);
     socket.roomId = roomId;
     socket.emit("room_created", roomId);
   });
 
-  socket.on("join_room", ({ roomId, name }) => {
+  socket.on("join_room", ({ roomId, name, character }) => {
     if (!rooms[roomId]) {
       socket.emit("error_message", "Sala não encontrada");
       return;
@@ -62,7 +64,8 @@ io.on("connection", (socket) => {
       y: 100, 
       alive: true, 
       hp: 100,
-      name: name || "Jogador"
+      name: name || "Jogador",
+      character: character || "Charles"
     };
     socket.join(roomId);
     socket.roomId = roomId;
@@ -127,7 +130,7 @@ io.on("connection", (socket) => {
 
       for (let i = room.bullets.length - 1; i >= 0; i--) {
         const b = room.bullets[i];
-        b.x += b.dir === "right" ? 2 : -2;
+        b.x += b.dir === "right" ? 1.5 : -1.5;
 
         // Saiu do mapa
         if (b.x < 0 || b.x > 1600) {

@@ -23,6 +23,36 @@ const MAP_HEIGHT = 800;
 let cameraX = 0;       
 let cameraY = 0;
 
+let characterSprites = {};
+let selectedCharacter = "Charles";
+const charSelect = document.getElementById("characterSelect");
+if (charSelect) {
+  selectedCharacter = charSelect.value;
+}
+
+const spriteIdle = new Image();
+spriteIdle.src = `${selectedCharacter}/${selectedCharacter}Idle.png`;
+
+const spriteRun = new Image();
+spriteRun.src = `${selectedCharacter}/${selectedCharacter}Run.png`;
+
+const spriteAttack = new Image();
+spriteAttack.src = `${selectedCharacter}/${selectedCharacter}Attack.png`;
+
+let currentAction = "idle"; // idle, run, attack
+let actionFrameData = {
+  idle: { image: spriteIdle, frames: 6, width: 128, height: 128 },
+  run: { image: spriteRun, frames: 10, width: 128, height: 128 },
+  attack: { image: spriteAttack, frames: 5, width: 128, height: 128 }
+};
+
+let frameIndex = 0;
+let frameTimer = 0;
+let frameInterval = 100;
+
+const PLAYER_WIDTH = 40;
+const PLAYER_HEIGHT = 50;
+
 let platforms = [
     //paredes
     { x: -10, y: 0, width: 10, height: 1600 },
@@ -43,9 +73,14 @@ groundImage.onload = () => {
   groundTexture = ctx.createPattern(groundImage, "repeat");
 };
 
-const playerSprite = new Image();
-playerSprite.src = "https://pixelartmaker-data-78746291193.nyc3.digitaloceanspaces.com/image/19470f3427cb196.png";
-//playerSprite.src = "sprite-animation.gif";
+let platformTexture = null;
+const platformImage = new Image();
+platformImage.src = "https://tse4.mm.bing.net/th/id/OIP.vRr8ScD3Zay6XUF9fVafLwHaHa?rs=1&pid=ImgDetMain&o=7&rm=3";
+platformImage.onload = () => {
+    platformTexture = ctx.createPattern(platformImage, "repeat");
+  };
+// const playerSprite = new Image();
+// playerSprite.src = "Run.png";
 
 
 const playerGhost = new Image();
@@ -67,17 +102,33 @@ document.addEventListener("keydown", (e) => (keys[e.key] = true));
 document.addEventListener("keyup", (e) => (keys[e.key] = false));
 
 function update() {
-    if (keys["ArrowLeft"]) { myX -= 3; facing = "left"; }
-    if (keys["ArrowRight"]) { myX += 3; facing = "right"; }
+
+    let moving = false;
+
+    if (keys["ArrowLeft"]) { myX -= 3; facing = "left"; moving = true;}
+    if (keys["ArrowRight"]) { myX += 3; facing = "right"; moving = true;}
     if (keys["ArrowUp"] && onGround) { myVelY = JUMP_FORCE; onGround = false; }
     if ((keys["x"] || keys["X"]) && players[socket.id] && players[socket.id].alive) { shootBullet(); keys["x"] = keys["X"] = false; }
 
+    if (keys["ArrowLeft"] || keys["ArrowRight"]) {
+        currentAction = "run";
+    } else if (currentAction !== "attack") {
+        currentAction = "idle";
+    }
+        
+    frameTimer += 16.67; // ~60fps
+    if (frameTimer >= frameInterval) {
+        const action = actionFrameData[currentAction];
+        frameIndex = (frameIndex + 1) % action.frames;
+        frameTimer = 0;
+    }
+    
     onGround = false;
     for (const platform of platforms) {
         // Dimensões do jogador e da plataforma
-        const playerRight = myX + 30;
+        const playerRight = myX + PLAYER_WIDTH;
         const playerLeft = myX;
-        const playerBottom = myY + 30;
+        const playerBottom = myY + PLAYER_HEIGHT;
         const playerTop = myY;
 
         const platRight = platform.x + platform.width;
@@ -129,8 +180,8 @@ function update() {
 
     myY += myVelY;
 
-    if (myY + 30 >= GROUND_Y) {
-        myY = GROUND_Y - 30;
+    if (myY + PLAYER_HEIGHT >= GROUND_Y) {
+        myY = GROUND_Y - PLAYER_HEIGHT;
         myVelY = 0;
         onGround = true;
     }
@@ -172,9 +223,24 @@ function draw() {
         ctx.fillRect(0 - cameraX, GROUND_Y - cameraY, MAP_WIDTH, 50);
     }
 
-    ctx.fillStyle = "brown";
+    if (platformTexture) {
+        const pattern = platformTexture; // seu ctx.createPattern(…) já está pronto
+        const matrix = new DOMMatrix();
+        matrix.e = -cameraX % platformImage.width; // desloca horizontalmente
+        matrix.f = -cameraY % platformImage.height; // desloca verticalmente
+        pattern.setTransform(matrix);
+    
+        ctx.fillStyle = pattern;
+    } else {
+        ctx.fillStyle = "#444";
+    }
+    
     for (const platform of platforms) {
         ctx.fillRect(platform.x - cameraX, platform.y - cameraY, platform.width, platform.height);
+    
+        ctx.strokeStyle = "rgba(0,0,0,0.3)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(platform.x - cameraX, platform.y - cameraY, platform.width, platform.height);
     }
 
     // Desenha os jogadores
@@ -183,15 +249,30 @@ function draw() {
         const direction = isMe ? facing : "left";
 
         // Desenha o sprite do jogador
-        if (playerSprite.complete && playerSprite.naturalWidth > 0) {
+        if (spriteRun.complete && spriteRun.naturalWidth > 0) {
             ctx.save();
-            ctx.translate(p.x - cameraX + 16, p.y - cameraY + 16); 
-            if (direction === "right") ctx.scale(-1, 1); 
-            if (!p.alive){
-                ctx.drawImage(playerGhost, -16, -16, 32, 32); 
+            ctx.translate(p.x - cameraX + 16, p.y - cameraY + 16);
+          
+            if (direction === "left") ctx.scale(-1, 1);
+          
+            if (!p.alive) {
+              ctx.drawImage(playerGhost, -16, -16, 32, 32);
             } else {
-                ctx.drawImage(playerSprite, -16, -16, 32, 32);
+                const charSprites = getCharacterSprites(p.character || selectedCharacter);
+                const action = charSprites[currentAction] || charSprites.idle;
+                const img = action.image;
+              const sx = frameIndex * action.width;
+              const sy = 0;
+              const sw = action.width;
+              const sh = action.height;
+          
+              ctx.drawImage(
+                img,
+                sx, sy, sw, sh,
+                -48, -PLAYER_HEIGHT - 12, 96, 96
+              );
             }
+          
             ctx.restore();
         } else {
             ctx.fillStyle = isMe ? "lime" : "red";
@@ -213,12 +294,23 @@ function draw() {
 }
 
 function shootBullet() {
-  const bullet = {
-    x: myX + 16,
-    y: myY + 16,
-    dir: facing
-  };
-  enviarTiro(bullet);
+    if (currentAction !== "attack") {
+        currentAction = "attack";
+        frameIndex = 0;
+        frameTimer = 0;
+
+        // Retornar ao idle após a animação de ataque terminar
+        setTimeout(() => {
+        if (currentAction === "attack") currentAction = "idle";
+        }, actionFrameData.attack.frames * frameInterval);
+    }
+
+    const bullet = {
+        x: myX + 16,
+        y: myY + 16,
+        dir: facing
+    };
+    enviarTiro(bullet);
 }
 
 function updateStatus() {
@@ -227,8 +319,28 @@ function updateStatus() {
         if (!p.alive) continue; 
         //text += `${id === socket.id ? "Você" : id}: ${p.hp} HP\n`;
     }
-    statusDiv.innerText = text;
+    //statusDiv.innerText = text;
 }
+
+function getCharacterSprites(character) {
+    if (!characterSprites[character]) {
+      const idle = new Image();
+      idle.src = `${character}/${character}Idle.png`;
+  
+      const run = new Image();
+      run.src = `${character}/${character}Run.png`;
+  
+      const attack = new Image();
+      attack.src = `${character}/${character}Attack.png`;
+  
+      characterSprites[character] = {
+        idle: { image: idle, frames: 6, width: 128, height: 128 },
+        run: { image: run, frames: 10, width: 128, height: 128 },
+        attack: { image: attack, frames: 5, width: 128, height: 128 },
+      };
+    }
+    return characterSprites[character];
+  }
   
 
 function loop() {

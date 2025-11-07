@@ -40,7 +40,9 @@ function criarSala() {
   document.body.appendChild(canvas);
   document.getElementById('btnIniciar').removeAttribute('hidden')
   const name = document.getElementById("playerName").value || "Jogador";
-  socket.emit("create_room", name);
+  const character = document.getElementById("characterSelect").value;
+  selectedCharacter = character;
+  socket.emit("create_room", name, character);
 }
 
 function entrarSala() {
@@ -48,8 +50,10 @@ function entrarSala() {
   document.body.appendChild(canvas);
   const id = document.getElementById("roomId").value;
   const name = document.getElementById("playerName").value || "Jogador";
+  const character = document.getElementById("characterSelect").value;
+  selectedCharacter = character;
   roomId = id;
-  socket.emit("join_room", { roomId: id, name });
+  socket.emit("join_room", { roomId: id, name, character });
 }
 
 function iniciar() {

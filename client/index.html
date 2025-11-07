@@ -14,6 +14,12 @@
 
     <div class="menu">
       <input type="text" id="playerName" placeholder="👤 Seu nome">
+      <select id="characterSelect">
+        <option value="Charles">Charles</option>
+        <option value="David">David</option>
+        <option value="Luna">Luna</option>
+        <option value="Rex">Rex</option>
+      </select>
       <div class="buttons">
         <button class="btn neon-green" onclick="criarSala()">Criar Sala</button>
         <input id="roomId" placeholder="ID da sala">
@@ -21,12 +27,12 @@
       </div>
     </div>
 
-    <div class="status">
-      <p id="status">Conectando...</p>
-      <p id="playerCount"></p>
-    </div>
   </div>
   <button id="btnIniciar" class="btn neon-red" onclick="iniciar()"" hidden="true">Iniciar Jogo</button>
+  <div class="status">
+    <p id="status">Conectando...</p>
+    <p id="playerCount"></p>
+  </div>
 
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
   <script src="socket.js"></script>
@@ -86,6 +92,19 @@
       color: #bbb;
     }
 
+    select {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      font-size: 16px;
+      outline: none;
+      margin: 5px;
+      width: 200px;
+      text-align: center;
+    }
+
     /* ---------- BOTÕES ---------- */
     .buttons {
       margin-top: 10px;
@@ -137,7 +156,13 @@
 
     /* ---------- STATUS ---------- */
     .status {
-      margin-top: 20px;
+      position: fixed;
+      top: 10px;
+      left: 30%;
+      z-index: 9999; /* fica acima do canvas */
+      padding: 12px 20px;
+
+      margin-top: 10px;
       font-size: 18px;
       color: #0ff;
       text-shadow: 0 0 10px #0ff;
