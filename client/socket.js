@@ -3,6 +3,7 @@ const socket = io();
 let roomId = null;
 
 socket.on("room_created", (id) => {
+    console.log("room id: " + id);
   roomId = id;
   document.getElementById("status").innerText = "Sala criada: " + id;
 });
@@ -61,7 +62,15 @@ function iniciar() {
 }
 
 function enviarMovimento(x, y) {
-  if (roomId) socket.emit("player_move", { roomId, x, y });
+  if (roomId) {
+    socket.emit("player_move", {
+      roomId,
+      x,
+      y,
+      action: currentAction,
+      facing: facing
+    });
+  }
 }
 
 function enviarTiro(bullet) {

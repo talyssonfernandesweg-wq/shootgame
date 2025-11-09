@@ -3,6 +3,9 @@ const ctx = canvas.getContext("2d");
 canvas.width = 1200;
 canvas.height = 720;
 
+let gameStart = 0;
+let canShoot = true;
+
 let players = {};
 let myX = 100, myY = 100;
 let myVelY = 0;       
@@ -13,8 +16,9 @@ let facing = 'left';
 let bullets = [];
 const BULLET_SPEED = 6;
 
-const GRAVITY = 0.5;    
-const JUMP_FORCE = -10;  
+const GRAVITY = 0.2;    
+const JUMP_FORCE = -7;
+const MAX_FALL_SPEED = 3;
 const GROUND_Y = 750;
 
 const MAP_WIDTH = 1600;
@@ -53,17 +57,32 @@ let frameInterval = 100;
 const PLAYER_WIDTH = 40;
 const PLAYER_HEIGHT = 50;
 
+canvas.addEventListener("click", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  console.log(`Posição do mouse no canvas: ${Math.round(x)}x${Math.round(y)}`);
+});
+
 let platforms = [
     //paredes
-    { x: -10, y: 0, width: 10, height: 1600 },
-    { x: 1600, y: 0, width: 10, height: 1600 },
+    { x: -10, y: 0, width: 10, height: 1600 }, // limite do mapa esquerda
+    { x: 1600, y: 0, width: 10, height: 1600 }, // limite do mapa direita
+    { x: 700, y: 370, width: 10, height: 100 },
+    { x: 1100, y: 180, width: 10, height: 100 },
+    { x: 950, y: 470, width: 10, height: 100 },
+    { x: 800, y: 680, width: 10, height: 100 },
 
     //plataformas
-    { x: 50, y: 680, width: 400, height: 20 }, 
-    { x: 520, y: 600, width: 500, height: 20 },  
-    { x: 0, y: 450, width: 700, height: 20 }, 
-    { x: 1000, y: 720, width: 200, height: 20 }, 
-    { x: 1300, y: 720, width: 200, height: 20 }  
+    { x: 100, y: 450, width: 600, height: 20 },
+    { x: 0, y: 550, width: 300, height: 20 }, 
+    { x: 0, y: 650, width: 500, height: 20 },  
+    { x: 550, y: 550, width: 600, height: 20 }, 
+    { x: 700, y: 450, width: 150, height: 20 },
+    { x: 300, y: 350, width: 200, height: 20 },
+    { x: 600, y: 280, width: 800, height: 20 }, 
+    { x: 1200, y: 650, width: 300, height: 20 }, 
+    { x: 1400, y: 550, width: 200, height: 20 },
 ];
 
 let groundTexture = null;
@@ -78,9 +97,7 @@ const platformImage = new Image();
 platformImage.src = "https://tse4.mm.bing.net/th/id/OIP.vRr8ScD3Zay6XUF9fVafLwHaHa?rs=1&pid=ImgDetMain&o=7&rm=3";
 platformImage.onload = () => {
     platformTexture = ctx.createPattern(platformImage, "repeat");
-  };
-// const playerSprite = new Image();
-// playerSprite.src = "Run.png";
+  };    
 
 
 const playerGhost = new Image();
@@ -104,13 +121,23 @@ document.addEventListener("keyup", (e) => (keys[e.key] = false));
 function update() {
 
     let moving = false;
+    let shooting = false;
 
-    if (keys["ArrowLeft"]) { myX -= 3; facing = "left"; moving = true;}
-    if (keys["ArrowRight"]) { myX += 3; facing = "right"; moving = true;}
+    if (keys["ArrowLeft"]) { myX -= 1.5; facing = "left"; moving = true;}
+    if (keys["ArrowRight"]) { myX += 1.5; facing = "right"; moving = true;}
     if (keys["ArrowUp"] && onGround) { myVelY = JUMP_FORCE; onGround = false; }
-    if ((keys["x"] || keys["X"]) && players[socket.id] && players[socket.id].alive) { shootBullet(); keys["x"] = keys["X"] = false; }
+    if ((keys["x"] || keys["X"]) && players[socket.id] && players[socket.id].alive && canShoot) {
+    // dispara apenas uma vez enquanto a tecla estiver pressionada
+        shootBullet();
+        canShoot = false; // bloqueia novos tiros até a tecla ser solta
+    }
 
-    if (keys["ArrowLeft"] || keys["ArrowRight"]) {
+    // quando a tecla for solta, libera o tiro novamente
+    if (!keys["x"] && !keys["X"]) {
+        canShoot = true;
+    }
+
+    if (moving) {
         currentAction = "run";
     } else if (currentAction !== "attack") {
         currentAction = "idle";
@@ -176,6 +203,7 @@ function update() {
 
     if (!onGround){
         myVelY += GRAVITY;
+        if (myVelY > MAX_FALL_SPEED) myVelY = MAX_FALL_SPEED;
     }
 
     myY += myVelY;
@@ -246,7 +274,7 @@ function draw() {
     // Desenha os jogadores
     for (const [id, p] of Object.entries(players)) {
         const isMe = id === socket.id;
-        const direction = isMe ? facing : "left";
+        const direction = p.facing || "right";
 
         // Desenha o sprite do jogador
         if (spriteRun.complete && spriteRun.naturalWidth > 0) {
@@ -259,18 +287,19 @@ function draw() {
               ctx.drawImage(playerGhost, -16, -16, 32, 32);
             } else {
                 const charSprites = getCharacterSprites(p.character || selectedCharacter);
-                const action = charSprites[currentAction] || charSprites.idle;
+                const actionName = p.action || "idle";
+                const action = charSprites[actionName] || charSprites.idle;
                 const img = action.image;
-              const sx = frameIndex * action.width;
-              const sy = 0;
-              const sw = action.width;
-              const sh = action.height;
+                const sx = frameIndex * action.width;
+                const sy = 0;
+                const sw = action.width;
+                const sh = action.height;
           
-              ctx.drawImage(
-                img,
-                sx, sy, sw, sh,
-                -48, -PLAYER_HEIGHT - 12, 96, 96
-              );
+                ctx.drawImage(
+                    img,
+                    sx, sy, sw, sh,
+                    -48, -PLAYER_HEIGHT - 12, 96, 96
+                );
             }
           
             ctx.restore();
@@ -288,6 +317,7 @@ function draw() {
 
     // Desenha as balas
     ctx.fillStyle = "yellow";
+    if (selectedCharacter == 'Luna') ctx.fillStyle = "red";;
     for (const b of bullets) {
         ctx.fillRect(b.x - cameraX - 4, b.y - cameraY - 2, 8, 4);
     }
@@ -301,7 +331,7 @@ function shootBullet() {
 
         // Retornar ao idle após a animação de ataque terminar
         setTimeout(() => {
-        if (currentAction === "attack") currentAction = "idle";
+            if (currentAction === "attack") currentAction = "idle";
         }, actionFrameData.attack.frames * frameInterval);
     }
 
